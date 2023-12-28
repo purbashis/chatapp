@@ -21,27 +21,32 @@ class _AuthScreenState extends State<AuthScreen> {
   var _enteredPassword = "";
   File? _selectedImage;
   var _isAuthenticating = false;
+
   void _submit() async {
     final isValid = _form.currentState!.validate();
-    if (!isValid || !_isLogin && _selectedImage == null) {
-      //show error message ....
+    if (!isValid || (!_isLogin && _selectedImage == null)) {
+      // Show error message
       return;
     }
 
     _form.currentState!.save();
-    // print(_enteredEmail);
-    // print(_enteredPassword);
+
     try {
       setState(() {
         _isAuthenticating = true;
       });
+
       if (_isLogin) {
         final userCredentials = await _firebase.signInWithEmailAndPassword(
-            email: _enteredEmail, password: _enteredPassword);
+          email: _enteredEmail,
+          password: _enteredPassword,
+        );
         print(userCredentials);
       } else {
         final userCredentials = await _firebase.createUserWithEmailAndPassword(
-            email: _enteredEmail, password: _enteredPassword);
+          email: _enteredEmail,
+          password: _enteredPassword,
+        );
         print(userCredentials);
 
         final storageRef = FirebaseStorage.instance
@@ -54,15 +59,15 @@ class _AuthScreenState extends State<AuthScreen> {
         print(imageUrl);
       }
     } on FirebaseAuthException catch (error) {
-      if (error.code == 'email-already-in-use') {
-        // ...
-      }
+      // Handle FirebaseAuthException
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error.message ?? 'Authentication failed.'),
         ),
       );
+    } finally {
+      // Set _isAuthenticating to false when done
       setState(() {
         _isAuthenticating = false;
       });
@@ -80,7 +85,11 @@ class _AuthScreenState extends State<AuthScreen> {
             children: [
               Container(
                 margin: const EdgeInsets.only(
-                    top: 30, bottom: 20, left: 20, right: 20),
+                  top: 30,
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                ),
                 width: 200,
                 child: Image.asset('assets/images/chat.png'),
               ),
@@ -90,73 +99,80 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Form(
-                        key: _form,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!_isLogin)
-                              UserImagePicker(
-                                onPickImage: (pickedImage) {
-                                  _selectedImage = pickedImage;
-                                },
+                      key: _form,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!_isLogin)
+                            UserImagePicker(
+                              onPickImage: (pickedImage) {
+                                _selectedImage = pickedImage;
+                              },
+                            ),
+                          TextFormField(
+                            decoration: const InputDecoration(
+                              labelText: 'Email Address',
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            autocorrect: false,
+                            textCapitalization: TextCapitalization.none,
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty ||
+                                  !value.contains('@')) {
+                                return 'Please enter a valid email address.';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enteredEmail = value!;
+                            },
+                          ),
+                          TextFormField(
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                            ),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.trim().length < 6) {
+                                return 'Password must be at least 6 characters long.';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enteredPassword = value!;
+                            },
+                          ),
+                          const SizedBox(
+                            height: 12,
+                          ),
+                          if (_isAuthenticating) CircularProgressIndicator(),
+                          if (!_isAuthenticating)
+                            ElevatedButton(
+                              onPressed: _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
                               ),
-                            TextFormField(
-                              decoration: const InputDecoration(
-                                  labelText: 'Email Address'),
-                              keyboardType: TextInputType.emailAddress,
-                              autocorrect: false,
-                              textCapitalization: TextCapitalization.none,
-                              validator: (value) {
-                                if (value == null ||
-                                    value.trim().isEmpty ||
-                                    !value.contains('@')) {
-                                  return 'Please enter  a valid email address.';
-                                }
-                                return null;
-                              },
-                              onSaved: (value) {
-                                _enteredEmail = value!;
-                              },
+                              child: Text(_isLogin ? 'Login' : 'Sign Up'),
                             ),
-                            TextFormField(
-                              decoration:
-                                  const InputDecoration(labelText: 'Password'),
-                              obscureText: true,
-                              validator: (value) {
-                                if (value == null || value.trim().length < 6) {
-                                  return 'Password must be at least 6 characters long .';
-                                }
-                                return null;
+                          if (!_isAuthenticating)
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isLogin = !_isLogin;
+                                });
                               },
-                              onSaved: (value) {
-                                _enteredPassword = value!;
-                              },
+                              child: Text(
+                                _isLogin
+                                    ? 'Create an account'
+                                    : 'I already have an account',
+                              ),
                             ),
-                            const SizedBox(
-                              height: 12,
-                            ),
-                            const CircularProgressIndicator(),
-                            if (!_isAuthenticating)
-                              ElevatedButton(
-                                  onPressed: _submit,
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer),
-                                  child: Text(_isLogin ? 'Login' : 'SignUp')),
-                            if (!_isAuthenticating)
-                              TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      // _islogin = _islogin ? false : true;
-                                      _isLogin = !_isLogin;
-                                    });
-                                  },
-                                  child: Text(_isLogin
-                                      ? 'Create an account'
-                                      : 'I already have an account '))
-                          ],
-                        )),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
