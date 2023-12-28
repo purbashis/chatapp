@@ -12,7 +12,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _form = GlobalKey<FormState>();
-  var _islogin = true;
+  var _isLogin = true;
   var _enteredEmail = "";
   var _enteredPassword = "";
   void _submit() async {
@@ -23,22 +23,28 @@ class _AuthScreenState extends State<AuthScreen> {
     _form.currentState!.save();
     // print(_enteredEmail);
     // print(_enteredPassword);
-    if (_islogin) {
-      //log users in
-    } else {
-      try {
+    try {
+      if (_isLogin) {
+        final userCredentials = await _firebase.signInWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPassword);
+        print(userCredentials);
+      } else {
         final userCredentials = await _firebase.createUserWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPassword);
         print(userCredentials);
-      } on FirebaseAuthException catch (error) {
-        if (error.code == 'email-already -in-use ') {}
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error.message ?? 'Authentication Failed.')));
       }
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'email-already-in-use') {
+        // ...
+      }
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message ?? 'Authentication failed.'),
+        ),
+      );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,15 +111,15 @@ class _AuthScreenState extends State<AuthScreen> {
                                     backgroundColor: Theme.of(context)
                                         .colorScheme
                                         .primaryContainer),
-                                child: Text(_islogin ? 'Login' : 'SignUp')),
+                                child: Text(_isLogin ? 'Login' : 'SignUp')),
                             TextButton(
                                 onPressed: () {
                                   setState(() {
                                     // _islogin = _islogin ? false : true;
-                                    _islogin = !_islogin;
+                                    _isLogin = !_isLogin;
                                   });
                                 },
-                                child: Text(_islogin
+                                child: Text(_isLogin
                                     ? 'Create an account'
                                     : 'I already have an account '))
                           ],
